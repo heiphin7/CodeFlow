@@ -1,3 +1,5 @@
+/* styles.css */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #2d2d2d;
@@ -63,17 +65,9 @@ body {
     background-color: #1a1a1a;
 }
 
-.sidebar-left, .sidebar-right {
-    width: 200px;
-    background-color: #3c3c3c;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
 .problems {
-    flex: 1;
-    padding: 0 20px;
+    flex: 3;
+    padding-right: 20px;
 }
 
 .categories {
@@ -122,20 +116,111 @@ tr:nth-child(even) td {
     background-color: #3c3c3c;
 }
 
-.sidebar-right {
+.card {
+    background-color: #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #fff;
+    padding: 20px;
+    width: 250px;
+    margin-left: 20px; /* Отступ от основного контента */
+    flex-shrink: 0;
+    align-self: flex-start; /* Выравнивание карточки по верхнему краю */
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-left: 10px;
+}
+
+.user-settings {
+    display: flex;
+    align-items: center;
+}
+
+.user-settings span {
+    margin-right: 10px;
+}
+
+.settings-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.card-content {
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
-.solved-info {
-    flex: 1;
-    background-color: #454545;
-    padding: 10px;
+.progress-circle {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.circle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #444;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    position: relative;
+}
+
+.circle .all {
+    font-size: 14px;
+    color: #ccc;
+}
+
+.circle .count {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.circle .total {
+    font-size: 12px;
+    color: #999;
+}
+
+.stats {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.stat {
     margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    width: 150px;
 }
 
-.extra-info {
-    flex: 3;
-    background-color: #5a5a5a;
-    padding: 10px;
+.stat .label {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.stat .value {
+    text-align: right;
+    padding-top: 2px;
+}
+
+.stat.easy .label {
+    color: #00e676;
+}
+
+.stat.medium .label {
+    color: #ffeb3b;
+}
+
+.stat.hard .label {
+    color: #ff5252;
 }
