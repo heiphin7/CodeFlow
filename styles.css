@@ -21,6 +21,22 @@ body {
     align-items: center;
     padding: 5px;
     background-color: #282828;
+    color: #aaaaaa; /* Цвет текста в Header */
+}
+
+/* Стили для прокрутки */
+::-webkit-scrollbar {
+    width: 16px; /* Ширина ползунка */
+}
+
+::-webkit-scrollbar-track {
+    background: #1a1a1a; /* Цвет фона области прокрутки */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #3a3a3a; /* Цвет ползунка */
+    border-radius: 10px; /* Скругление углов ползунка */
+    border: 3px solid #1a1a1a; /* Полоса вокруг ползунка для эффекта отступа */
 }
 
 .nav {
@@ -31,14 +47,15 @@ body {
 }
 
 .nav a {
-    color: #ffffff;
+    color: #aaaaaa; /* Цвет текста для ссылок в навигации */
     text-decoration: none;
     padding: 0 15px;
     font-size: 18px;
 }
 
 .nav a:hover {
-    text-decoration: underline;
+    color: #ffffff; /* Цвет текста при наведении */
+    text-decoration: none; /* Убирает подчеркивание при наведении */
 }
 
 .logo-section {
@@ -56,6 +73,7 @@ body {
 
 .projectname {
     font-size: 24px;
+    color: white; /* Цвет текста для названия проекта */
 }
 
 .user-info {
@@ -63,10 +81,12 @@ body {
     align-items: center;
     padding-right: 55px;
     font-size: 24px;
+    color: white; /* Цвет текста для информации о пользователе */
 }
 
 .username {
     margin-left: 10px;
+    color: white;
 }
 
 .main-nav {
@@ -89,7 +109,7 @@ body {
 }
 
 .search-bar {
-    width: 20%; /* Уменьшена ширина строки поиска */
+    width: 50%; /* Уменьшена ширина строки поиска */
     padding: 10px;
     margin-bottom: 20px;
     border-radius: 5px;
@@ -107,10 +127,20 @@ body {
 .categories button {
     background-color: #3c3c3c;
     border: none;
-    color: white;
     padding: 10px 20px;
     cursor: pointer;
     border-radius: 8px;
+    display: flex;
+    align-items: center;
+    color: #ffffff; /* Цвет текста */
+}
+
+.categories button i {
+    margin-right: 8px; /* Отступ между иконкой и текстом */
+}
+
+.categories button:hover {
+    background-color: #2e2e2e; /* Цвет темнее на 20% */
 }
 
 table {
