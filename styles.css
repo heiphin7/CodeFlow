@@ -1,0 +1,120 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #2d2d2d;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    background-color: #282828;
+}
+
+.logo-section {
+    display: flex;
+    align-items: center;
+    padding-left: 75px; /* Сдвиг логотипа и названия проекта на 25 пикселей вправо */
+}
+
+.logo-img {
+    height: 50px;
+    width: 50px;
+    margin-right: 10px; /* Расстояние между логотипом и названием */
+}
+
+.projectname {
+    font-size: 24px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    padding-right: 55px; /* Сдвиг имени пользователя и фотографии на 25 пикселей влево */
+}
+
+.username {
+    margin-left: 10px;
+    font-size: 23px;
+}
+
+.main-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: #1c1c1c;
+}
+
+.main-content {
+    display: flex;
+    flex: 1;
+    padding: 20px;
+    background-color: #1a1a1a;
+}
+
+.sidebar-left, .sidebar-right {
+    width: 250px;
+    background-color: #3c3c3c;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.problems {
+    flex: 1;
+    padding: 0 20px;
+}
+
+.categories {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.categories button {
+    background-color: #3c3c3c;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead {
+    background-color: #1c1c1c;
+}
+
+th, td {
+    padding: 10px;
+    border: 1px solid #3c3c3c;
+    text-align: left;
+}
+
+th {
+    font-weight: bold;
+}
+
+td {
+    background-color: #2d2d2d;
+}
+
+td:first-child {
+    text-align: center;
+}
+
+tr:nth-child(even) td {
+    background-color: #3c3c3c;
+}
