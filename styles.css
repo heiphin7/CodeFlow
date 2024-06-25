@@ -4,6 +4,7 @@ body {
     color: #ffffff;
     margin: 0;
     padding: 0;
+    zoom: 1.25;
 }
 
 .container {
@@ -23,7 +24,8 @@ body {
 .logo-section {
     display: flex;
     align-items: center;
-    padding-left: 75px; /* Сдвиг логотипа и названия проекта на 25 пикселей вправо */
+    margin-right: 25px; /* Сдвиг логотипа и названия проекта на 25 пикселей вправо */
+    padding-left: 55px;
 }
 
 .logo-img {
@@ -39,12 +41,12 @@ body {
 .user-info {
     display: flex;
     align-items: center;
-    padding-right: 55px; /* Сдвиг имени пользователя и фотографии на 25 пикселей влево */
+    padding-right: 55px;
+    font-size: 24px;
 }
 
 .username {
     margin-left: 10px;
-    font-size: 23px;
 }
 
 .main-nav {
@@ -62,10 +64,11 @@ body {
 }
 
 .sidebar-left, .sidebar-right {
-    width: 250px;
+    width: 200px;
     background-color: #3c3c3c;
     padding: 10px;
-    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
 .problems {
@@ -117,4 +120,22 @@ td:first-child {
 
 tr:nth-child(even) td {
     background-color: #3c3c3c;
+}
+
+.sidebar-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.solved-info {
+    flex: 1;
+    background-color: #454545;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.extra-info {
+    flex: 3;
+    background-color: #5a5a5a;
+    padding: 10px;
 }
