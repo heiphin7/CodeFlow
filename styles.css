@@ -169,8 +169,8 @@ tr:nth-child(even) td {
     justify-content: center;
     background-color: #444;
     border-radius: 50%;
-    width: 80px;
-    height: 80px;
+    width: 120px;
+    height: 120px;
     position: relative;
 }
 
@@ -178,14 +178,19 @@ tr:nth-child(even) td {
     font-size: 14px;
     color: #ccc;
 }
-
+.circle .line {
+    margin-top: -10px;
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #ccc;
+}
 .circle .count {
-    font-size: 24px;
+    font-size: 30px;
     font-weight: bold;
 }
 
 .circle .total {
-    font-size: 12px;
+    font-size: 15px;
     color: #999;
 }
 
