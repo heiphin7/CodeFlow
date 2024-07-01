@@ -1,11 +1,9 @@
 package com.codeflow.models;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -20,6 +18,9 @@ public class User {
 
     @Column
     private String password;
+
+    @OneToMany
+    private List<Role> roles;
 
     /* TODO Это пока базовая модель, где имеется только имя и пароль
        TODO Далее планиурется добавить все остальное после настройки аутнетификации
