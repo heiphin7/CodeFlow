@@ -6,6 +6,7 @@ import com.codeflow.models.User;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class UserMapper {
@@ -16,6 +17,7 @@ public class UserMapper {
         role.setId(1L);
         role.setName("ROLE_USER");
 
+        user.setId(UUID.randomUUID());
         user.setUsername(userDto.getUsername());
         user.setPassword(userDto.getPassword());
         user.setRoles(List.of(role));
