@@ -6,7 +6,6 @@ import com.codeflow.mapper.UserMapper;
 import com.codeflow.models.User;
 import com.codeflow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +23,6 @@ public class UserService {
 
     public void save(UserDto userDto) throws UsernameTakenException {
         // Мы не проверяем каждое поле, так как это происходит на фронте
-
         User user = userRepository.findByUsername(userDto.getUsername())
                 .orElse(null);
 
