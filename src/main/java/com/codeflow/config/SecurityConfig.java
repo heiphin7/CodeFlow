@@ -21,7 +21,7 @@ public class SecurityConfig {
                 csrf -> csrf.disable()
         ).authorizeHttpRequests(
                 request -> request.requestMatchers("/api/v1/save").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/** g").permitAll()
                         .anyRequest().permitAll()
         );
 
