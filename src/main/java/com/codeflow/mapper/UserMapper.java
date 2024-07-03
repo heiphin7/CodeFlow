@@ -1,6 +1,6 @@
 package com.codeflow.mapper;
 
-import com.codeflow.dto.UserDto;
+import com.codeflow.dto.AuthenticationDto;
 import com.codeflow.models.Role;
 import com.codeflow.models.User;
 import org.springframework.stereotype.Component;
@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Component
 public class UserMapper {
-    public User toUser(UserDto userDto) {
+    public User toUser(AuthenticationDto userDto) {
         User user = new User();
 
         Role role = new Role(); // default role for user

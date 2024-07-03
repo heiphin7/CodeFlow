@@ -1,6 +1,6 @@
 package com.codeflow.controller;
 
-import com.codeflow.dto.UserDto;
+import com.codeflow.dto.AuthenticationDto;
 import com.codeflow.exception.UsernameTakenException;
 import com.codeflow.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/api/v1/save")
-    private String save(@RequestBody UserDto userDto) {
+    private String save(@RequestBody AuthenticationDto userDto) {
         try {
             userService.save(userDto);
         } catch (UsernameTakenException e) {
@@ -31,7 +31,7 @@ public class UserController {
     }
 
     @PostMapping("/api/v1/authenticate")
-    public String authenticate(@RequestBody UserDto userDto) {
+    public String authenticate(@RequestBody AuthenticationDto userDto) {
         try {
             userService.authenticate(userDto);
         } catch (BadCredentialsException e) {

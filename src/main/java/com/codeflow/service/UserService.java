@@ -1,7 +1,6 @@
 package com.codeflow.service;
 
-import com.codeflow.config.SecurityConfig;
-import com.codeflow.dto.UserDto;
+import com.codeflow.dto.AuthenticationDto;
 import com.codeflow.exception.UsernameTakenException;
 import com.codeflow.mapper.UserMapper;
 import com.codeflow.models.User;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,7 +28,7 @@ public class UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
-    public void save(UserDto userDto) throws UsernameTakenException {
+    public void save(AuthenticationDto userDto) throws UsernameTakenException {
         // Мы не проверяем каждое поле, так как это происходит на фронте
         User user = userRepository.findByUsername(userDto.getUsername())
                 .orElse(null);
@@ -46,7 +44,7 @@ public class UserService {
         userRepository.save(userToSave);
     }
 
-    public void authenticate(UserDto userDto) throws BadCredentialsException {
+    public void authenticate(AuthenticationDto userDto) throws BadCredentialsException {
         SecurityContextHolder.getContext().setAuthentication(
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
