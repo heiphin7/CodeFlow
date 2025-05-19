@@ -1,18 +1,27 @@
 package com.api.codeflow.service;
 
+import com.api.codeflow.dto.AuthDto;
+import com.api.codeflow.dto.AuthResponse;
 import com.api.codeflow.dto.RegisterDto;
 import com.api.codeflow.exception.EmailIsTakenException;
 import com.api.codeflow.exception.UsernameIsTakenException;
+import com.api.codeflow.jwt.JwtTokenUtils;
 import com.api.codeflow.model.Role;
 import com.api.codeflow.model.User;
+import com.api.codeflow.model.UserDetails;
 import com.api.codeflow.repository.RoleRepository;
 import com.api.codeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +29,9 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RoleRepository roleRepository;
+    private final JwtTokenUtils jwtTokenUtils;
+    private final AuthenticationManager authenticationManager;
+    private final UserDetailsService userDetailsService;
 
     public void register(RegisterDto dto) throws UsernameIsTakenException,
                                                  EmailIsTakenException,
@@ -64,5 +76,28 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);
+    }
+
+    public AuthResponse login(AuthDto dto) throws BadCredentialsException {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        dto.getUsername(),
+                        dto.getPassword()
+                )
+        );
+
+        UserDetails userDetails = (UserDetails) userDetailsService.loadUserByUsername(dto.getUsername());
+        String token = jwtTokenUtils.generateAccessToken(userDetails);
+
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setToken(token);
+        authResponse.setUsername(dto.getUsername());
+        authResponse.setRoles(
+                userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList())
+        );
+
+        return authResponse;
     }
 }
