@@ -18,6 +18,8 @@ public class User {
     private String email;
     private String password; // encoded
 
+    private String refreshToken; // jwt
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
