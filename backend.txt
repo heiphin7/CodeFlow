@@ -1,0 +1,127 @@
+🧾 Backend Context for CodeFlow API (Spring Boot, JWT)
+🧩 General Description
+This is a Java backend API for a web application that handles user registration, authentication, and JWT-based authorization.
+The backend exposes RESTful endpoints that are consumed by a separate frontend (e.g., React running on a different port like localhost:3333).
+
+🔐 Authentication & Security Overview
+The backend uses JWT tokens to authorize users.
+
+On successful login, the user receives an access token.
+
+If the access token expires, a refresh token stored in the database is used to issue a new access token.
+
+The access token must be sent with each request in the header:
+Authorization: Bearer <access_token>
+Backend supports CORS for cross-origin requests and sends tokens in the response headers when needed.
+
+🧱 Tech Stack
+Spring Boot 3+
+Spring Security (Stateless + JWT)
+PostgreSQL (or any RDBMS via JPA)
+JSON-based communication
+DTO-layer between API and domain logic
+
+📬 API Endpoints
+1. POST /auth/register
+
+🔸 Description:
+Registers a new user.
+
+🔸 Request Body (JSON):
+json
+{
+  "username": "johndoe",
+  "password": "supersecurepassword",
+  "email": "john@example.com"
+}
+
+🔸 Success Response:
+200 OK
+"User registered successfully"
+
+🔸 Error Responses:
+400 Bad Request - "Username is already taken"
+400 Bad Request - "Email is already taken"
+500 Internal Server Error - "Server error :("
+
+2. POST /auth/login
+
+🔸 Description:
+Authenticates a user using username and password. Returns a JWT access token and user info.
+
+🔸 Request Body (JSON):
+json
+{
+  "username": "johndoe",
+  "password": "supersecurepassword"
+}
+
+🔸 Success Response:
+json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "username": "johndoe",
+  "roles": ["ROLE_USER"]
+}
+
+🔸 Error Responses:
+http
+401 Unauthorized - "Invalid username or password"
+500 Internal Server Error - "Server error :("
+🔐 JWT Token Logic
+Access Token:
+
+Short-lived
+
+Included in Authorization: Bearer <token> header
+
+Encodes username and roles
+
+Refresh Token:
+
+Long-lived
+
+Stored in the database (tied to user)
+
+When access token expires, backend checks refresh token and issues a new access token (sent via response header)
+
+Token Flow:
+Frontend sends POST /auth/login → receives accessToken
+
+Frontend stores the token (usually in localStorage or memory)
+
+Every secured request includes the Authorization header
+
+If the token is expired:
+
+Backend tries to refresh it (if refreshToken is still valid)
+
+A new accessToken is sent in the response header
+
+If both tokens are invalid → 401 Unauthorized
+
+🔄 CORS Support
+CORS is enabled globally
+
+Allows requests from http://localhost:3333
+
+Supports credentials if needed
+
+Frontend must send:
+
+js
+Копировать
+Редактировать
+fetch("http://localhost:8080/...", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(data),
+  credentials: "include" // only if cookies or allowCredentials is enabled
+});
+✅ Notes for Frontend Integration
+All API requests must send Content-Type: application/json
+
+Secure endpoints must include Authorization: Bearer <token> in headers
+
+After login, store the token value and reattach it on every secured request
+

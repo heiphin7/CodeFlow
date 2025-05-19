@@ -13,8 +13,10 @@ import com.api.codeflow.repository.RoleRepository;
 import com.api.codeflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,8 +32,8 @@ public class UserService {
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final RoleRepository roleRepository;
     private final JwtTokenUtils jwtTokenUtils;
-    private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
+    private final AuthenticationConfiguration authenticationConfiguration;
 
     public void register(RegisterDto dto) throws UsernameIsTakenException,
                                                  EmailIsTakenException,
@@ -64,6 +66,7 @@ public class UserService {
         // If everything is OK, create & save new User
         User user = new User();
         user.setEmail(dto.getEmail());
+        user.setUsername(dto.getUsername());
 
         // encode password
         user.setPassword(bCryptPasswordEncoder.encode(dto.getPassword()));
@@ -78,7 +81,9 @@ public class UserService {
         return userRepository.findByUsername(username).orElse(null);
     }
 
-    public AuthResponse login(AuthDto dto) throws BadCredentialsException {
+    public AuthResponse login(AuthDto dto) throws Exception {
+        AuthenticationManager authenticationManager = authenticationConfiguration.getAuthenticationManager();
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         dto.getUsername(),
@@ -86,7 +91,7 @@ public class UserService {
                 )
         );
 
-        UserDetails userDetails = (UserDetails) userDetailsService.loadUserByUsername(dto.getUsername());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(dto.getUsername());
         String token = jwtTokenUtils.generateAccessToken(userDetails);
 
         AuthResponse authResponse = new AuthResponse();
