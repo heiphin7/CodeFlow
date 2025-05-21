@@ -14,8 +14,12 @@ public class Task {
     private Long id;
 
     private String title;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
     private Integer number;
+
+    @Column(columnDefinition = "TEXT")
     private String solution;
 
     // Ограничения по выполнению кода

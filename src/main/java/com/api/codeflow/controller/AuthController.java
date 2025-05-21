@@ -30,6 +30,7 @@ public class AuthController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             log.error("Error while saving new User: " + e.getMessage());
+            log.error("Stack trace: " , e);
             return new ResponseEntity<>("Server error :(", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -43,6 +44,7 @@ public class AuthController {
             return new ResponseEntity<>("Invalid username or password", HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
             log.error("Error while authenticate user: " + e);
+            log.error("Stack trace: " + e);
             return new ResponseEntity<>("Server error :(", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

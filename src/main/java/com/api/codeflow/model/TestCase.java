@@ -14,4 +14,8 @@ public class TestCase {
     private String input;
     private String exceptedOutput;
     private Integer testNumber;
+
+    @ManyToOne
+    @JoinColumn(name = "task_id")
+    private Task task;
 }
