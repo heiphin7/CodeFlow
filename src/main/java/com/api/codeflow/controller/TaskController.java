@@ -1,15 +1,14 @@
 package com.api.codeflow.controller;
 
+import com.api.codeflow.dto.request.SubmitCodeDto;
 import com.api.codeflow.exception.NotFoundException;
+import com.api.codeflow.service.CompilerService;
 import com.api.codeflow.service.TaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/tasks")
@@ -17,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class TaskController {
     private final TaskService taskService;
+    private final CompilerService compilerService;
 
     @GetMapping("/{id}")
     public ResponseEntity<?> findTaskInfoById(@PathVariable Long id) {
@@ -37,6 +37,14 @@ public class TaskController {
         } catch (Exception e) {
             log.error("Error while finding all Tasks: " + e.getMessage());
             return new ResponseEntity<>("Server Error:(", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PostMapping("/{taskId}/submit")
+    public ResponseEntity<?> submitSolution(@PathVariable Long taskId,
+                                            @RequestBody SubmitCodeDto dto) {
+        try {
+            compilerService.checkSolution(taskId, dto);
         }
     }
 }
