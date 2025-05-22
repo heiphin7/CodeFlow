@@ -26,6 +26,9 @@ public class AdminController {
 
     private final TaskService taskService;
 
+    // TODO: PREAUTHORIZE FOR ALL ADMIN REQUESTS
+    // TODO: ADD MODIFY TASK API ENDPOINT
+
     @PostMapping("/task/create")
     // @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> createNewTask(

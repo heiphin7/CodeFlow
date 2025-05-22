@@ -1,6 +1,8 @@
 package com.api.codeflow.service;
 
 import com.api.codeflow.dto.CreateNewTaskDto;
+import com.api.codeflow.dto.TaskInfoDto;
+import com.api.codeflow.exception.NotFoundException;
 import com.api.codeflow.model.Difficulty;
 import com.api.codeflow.model.Tag;
 import com.api.codeflow.model.Task;
@@ -10,6 +12,8 @@ import com.api.codeflow.repository.TagRepository;
 import com.api.codeflow.repository.TaskRepository;
 import com.api.codeflow.repository.TestCaseRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TaskService {
 
     private final TaskRepository taskRepository;
@@ -76,5 +81,59 @@ public class TaskService {
         task.setMemoryLimit(dto.getMemoryLimit());
 
         taskRepository.save(task);
+    }
+
+    public TaskInfoDto findTaskById(Long taskId) throws NotFoundException {
+        Task task = taskRepository.findById(taskId).orElseThrow(
+                () -> new NotFoundException("Task with id=" + taskId + " not founded!")
+        );
+
+        List<String> tags = new ArrayList<>();
+        for(Tag tag: task.getTags()) {
+            tags.add(tag.getName());
+        }
+
+        // Маппим данные
+        TaskInfoDto dto = new TaskInfoDto();
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+        dto.setNumber(task.getNumber());
+        dto.setSolution(task.getSolution());
+        dto.setTags(tags);
+        dto.setTimeLimit(task.getTimeLimit());
+        dto.setMemoryLimit(task.getMemoryLimit());
+        dto.setDifficulty(task.getDifficulty().getName());
+
+        return dto;
+    }
+
+    public List<TaskInfoDto> findAllTasks() {
+        List<Task> tasks = taskRepository.findAll();
+        log.info("Tasks in db: " + tasks);
+        List<TaskInfoDto> dtos = new ArrayList<>();
+
+        for (Task task: tasks) {
+            TaskInfoDto dto = new TaskInfoDto();
+
+            List<String> tags = new ArrayList<>();
+            for(Tag tag: task.getTags()) {
+                tags.add(tag.getName());
+            }
+            // TODO: Make the mapper method or even class for Task -> TaskInfoDto???
+            dto.setId(task.getId());
+            dto.setTitle(task.getTitle());
+            dto.setDescription(task.getDescription());
+            dto.setNumber(task.getNumber());
+            dto.setSolution(task.getSolution());
+            dto.setTags(tags);
+            dto.setTimeLimit(task.getTimeLimit());
+            dto.setMemoryLimit(task.getMemoryLimit());
+            dto.setDifficulty(task.getDifficulty().getName());
+
+            dtos.add(dto);
+        }
+
+        return dtos;
     }
 }

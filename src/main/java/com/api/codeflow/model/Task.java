@@ -29,6 +29,8 @@ public class Task {
     @ManyToOne
     private Difficulty difficulty;
 
+    // TODO: ДОБАВИТЬ ПРОЦЕНТ РЕШИВШИХСЯ
+
     @ManyToMany
     @JoinTable(
             name = "task_tags",

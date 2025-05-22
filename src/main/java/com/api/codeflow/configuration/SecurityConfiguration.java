@@ -33,22 +33,29 @@ public class SecurityConfiguration {
         return http
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
+                                // TODO: Тут кароче починить ну типа убрать то что дублирование
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/auth/register",
                                 "/auth/login",
                                 "/api/admin/task/create",
-                                "/admin/task/create" // TODO: УБАРТЬ!!
+                                "/admin/task/create",
+                                "/tasks/findAll",// TODO: УБАРТЬ!!
+                                "/tasks/**"
                         ) // <- отключаем только на auth
                 )
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers(
-                                        "/api/auth/register",
+                                // TODO: Тут также убрать кароче защищенные endpoint-ы и починить все с jwt
+                                // TODO: Тту кароче приставку /api не нужно указывать, ну ладно позже кароче разберемся
+                                       "/api/auth/register",
                                         "/api/auth/login",
                                         "/auth/register",
                                         "/auth/login",
                                         "/api/admin/task/create",
-                                        "/admin/task/create" // TODO: УБРАТЬ!
+                                        "/admin/task/create",
+                                        "/tasks/findAll",
+                                        "/tasks/**"// TODO: УБРАТЬ!
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

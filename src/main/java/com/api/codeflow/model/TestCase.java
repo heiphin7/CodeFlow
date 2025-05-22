@@ -2,6 +2,7 @@ package com.api.codeflow.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.ToString;
 
 @Entity
 @Data
@@ -17,5 +18,6 @@ public class TestCase {
 
     @ManyToOne
     @JoinColumn(name = "task_id")
+    @ToString.Exclude
     private Task task;
 }
