@@ -11,6 +11,7 @@ import com.api.codeflow.repository.DifficultyRepository;
 import com.api.codeflow.repository.TagRepository;
 import com.api.codeflow.repository.TaskRepository;
 import com.api.codeflow.repository.TestCaseRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.crossstore.ChangeSetPersister;
@@ -135,5 +136,12 @@ public class TaskService {
         }
 
         return dtos;
+    }
+
+
+    @Transactional(readOnly = true)
+    public Task findByIdWithTestCases(Long taskId) {
+        return taskRepository.findWithTestCasesById(taskId)
+                .orElseThrow(() -> new EntityNotFoundException("Task with ID " + taskId + " not found"));
     }
 }

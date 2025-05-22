@@ -1,7 +1,9 @@
 package com.api.codeflow.controller;
 
 import com.api.codeflow.dto.request.SubmitCodeDto;
+import com.api.codeflow.dto.response.SuccessSolution;
 import com.api.codeflow.exception.NotFoundException;
+import com.api.codeflow.exception.WrongSolutionException;
 import com.api.codeflow.service.CompilerService;
 import com.api.codeflow.service.TaskService;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +46,13 @@ public class TaskController {
     public ResponseEntity<?> submitSolution(@PathVariable Long taskId,
                                             @RequestBody SubmitCodeDto dto) {
         try {
-            compilerService.checkSolution(taskId, dto);
+            SuccessSolution success = compilerService.checkSolution(taskId, dto);
+            return ResponseEntity.ok(success);
+        } catch (WrongSolutionException e) {
+            return ResponseEntity.ok(e.getPayload());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
         }
     }
 }
