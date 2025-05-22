@@ -4,6 +4,7 @@ import com.api.codeflow.dto.judge0.*;
 import com.api.codeflow.dto.response.WrongSolution;
 import com.api.codeflow.exception.TimeLimitExceededException;
 import com.api.codeflow.exception.WrongSolutionException;
+import com.api.codeflow.model.TestCase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -67,36 +68,6 @@ public class Judge0Client {
             ResponseEntity<BatchSubmissionResultResponse> response =
                     restTemplate.getForEntity(RESULT_URL + joined, BatchSubmissionResultResponse.class);
             subs = response.getBody().getSubmissions();
-
-            for (int i = 0; i < subs.size(); i++) {
-                BatchSubmissionResult r = subs.get(i);
-                int status = r.getStatus().getId();
-
-                // 💥 Сначала проверяем: завершён ли сабмишн
-                if (status > 2) {
-                    // ✅ Только теперь проверяем, что это НЕ Accepted
-                    if (status != 3) {
-                        log.warn("🔴 Early stop: testCase #{} failed with status {} ({})",
-                                i + 1,
-                                status,
-                                r.getStatus().getDescription());
-                        log.warn("    stdout='{}', stderr='{}', compile_output='{}'",
-                                r.getStdout(),
-                                r.getStderr(),
-                                r.getCompile_output());
-
-                        if (status == 5) {
-                            throw new TimeLimitExceededException(i + 1);
-                        } else if (status == 6) {
-                            throw new WrongSolutionException(buildCE(tcIndex(i), r.getCompile_output()));
-                        } else {
-                            throw new WrongSolutionException(
-                                    buildWA(tcIndex(i), r.getStdout(), r.getStderr(), r.getMessage())
-                            );
-                        }
-                    }
-                }
-            }
 
             // Если ни один не в очереди/в процессе — значит все Accepted, выходим
             boolean allDone = subs.stream()

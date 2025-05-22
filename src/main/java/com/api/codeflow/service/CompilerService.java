@@ -57,7 +57,6 @@ public class CompilerService {
             // здесь может прилететь TimeLimitExceededException
             results = judge0Client.getBatchResults(tokens);
         } catch (TimeLimitExceededException e) {
-            // мапим на WrongSolution
             int tcNum = e.getTestCaseNumber();
             TestCase tc = sortedCases.stream()
                     .filter(t -> t.getTestNumber() == tcNum)
@@ -70,6 +69,36 @@ public class CompilerService {
             wrong.setExceptedOutput(tc.getExceptedOutput());
             wrong.setProgramOutput("Time Limit Exceeded");
             throw new WrongSolutionException(wrong);
+        }
+
+        for (int i = 0; i < results.size(); i++) {
+            BatchSubmissionResult r = results.get(i);
+            TestCase tc = sortedCases.get(i);
+            int status = r.getStatus().getId();
+
+            if (status != 3) {
+                WrongSolution wrong = new WrongSolution();
+                wrong.setTestCaseNumber(tc.getTestNumber());
+                wrong.setInput(tc.getInput());
+                wrong.setExceptedOutput(tc.getExceptedOutput());
+
+                String output;
+                switch (status) {
+                    case 4:  // Wrong Answer
+                        output = r.getStdout();
+                        break;
+                    case 5:  // Time Limit Exceeded
+                        output = "Time Limit Exceeded";
+                        break;
+                    case 6:  // Compilation Error
+                        output = r.getCompile_output();
+                        break;
+                    default: // Runtime Error и прочие
+                        output = r.getStderr() != null ? r.getStderr() : r.getMessage();
+                }
+                wrong.setProgramOutput(output);
+                throw new WrongSolutionException(wrong);
+            }
         }
 
         // все здесь гарантированно Accepted, собираем метрики:
@@ -90,10 +119,22 @@ public class CompilerService {
 
     private Integer mapLanguage(String lang) {
         return switch (lang.toLowerCase()) {
-            case "java"   -> 62;
-            case "python" -> 71;
-            default       -> throw new IllegalArgumentException("Unsupported language: " + lang);
+            case "java"        -> 62;  // Java (OpenJDK 17)
+            case "python"      -> 71;  // Python (3.8.1)
+            case "python3"     -> 71;
+            case "cpp", "c++"  -> 54;  // C++ (GCC 9.2.0)
+            case "c"           -> 50;  // C (GCC 9.2.0)
+            case "javascript"  -> 63;  // JavaScript (Node.js 12.14.0)
+            case "typescript"  -> 74;  // TypeScript (3.7.4)
+            case "csharp", "cs"-> 51;  // C# (Mono 6.6.0.161)
+            case "ruby"        -> 72;  // Ruby (2.7.0)
+            case "go", "golang"-> 60;  // Go (1.13.5)
+            case "swift"       -> 83;  // Swift (5.2.3)
+            case "kotlin"      -> 78;  // Kotlin (1.3.70)
+            case "rust"        -> 73;  // Rust (1.40.0)
+            default            -> throw new IllegalArgumentException("Unsupported language: " + lang);
         };
     }
+
 }
 
