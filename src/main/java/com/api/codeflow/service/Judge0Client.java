@@ -1,6 +1,9 @@
 package com.api.codeflow.service;
 
 import com.api.codeflow.dto.judge0.*;
+import com.api.codeflow.dto.response.WrongSolution;
+import com.api.codeflow.exception.TimeLimitExceededException;
+import com.api.codeflow.exception.WrongSolutionException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -56,8 +59,6 @@ public class Judge0Client {
                 .toList();
     }
 
-
-
     public List<BatchSubmissionResult> getBatchResults(List<String> tokens) throws InterruptedException {
         String joined = String.join(",", tokens);
         List<BatchSubmissionResult> subs;
@@ -67,32 +68,65 @@ public class Judge0Client {
                     restTemplate.getForEntity(RESULT_URL + joined, BatchSubmissionResultResponse.class);
             subs = response.getBody().getSubmissions();
 
-            // Если все завершены (не в очереди/обработке)
-            boolean allFinished = subs.stream()
-                    .allMatch(r -> r.getStatus().getId() > 2);
+            for (int i = 0; i < subs.size(); i++) {
+                BatchSubmissionResult r = subs.get(i);
+                int status = r.getStatus().getId();
 
-            // Если хотя бы один не Accepted (ошибка, WA, CE, и т.д.) — сразу выходим
-            boolean anyFailed = subs.stream()
-                    .anyMatch(r -> r.getStatus().getId() > 2 && r.getStatus().getId() != 3);
+                // 💥 Сначала проверяем: завершён ли сабмишн
+                if (status > 2) {
+                    // ✅ Только теперь проверяем, что это НЕ Accepted
+                    if (status != 3) {
+                        log.warn("🔴 Early stop: testCase #{} failed with status {} ({})",
+                                i + 1,
+                                status,
+                                r.getStatus().getDescription());
+                        log.warn("    stdout='{}', stderr='{}', compile_output='{}'",
+                                r.getStdout(),
+                                r.getStderr(),
+                                r.getCompile_output());
 
-            if (allFinished || anyFailed) {
-                break;
+                        if (status == 5) {
+                            throw new TimeLimitExceededException(i + 1);
+                        } else if (status == 6) {
+                            throw new WrongSolutionException(buildCE(tcIndex(i), r.getCompile_output()));
+                        } else {
+                            throw new WrongSolutionException(
+                                    buildWA(tcIndex(i), r.getStdout(), r.getStderr(), r.getMessage())
+                            );
+                        }
+                    }
+                }
             }
 
-            Thread.sleep(200); // чуть быстрее, чем 500 мс
-        }
+            // Если ни один не в очереди/в процессе — значит все Accepted, выходим
+            boolean allDone = subs.stream()
+                    .allMatch(r -> r.getStatus().getId() > 2);
+            if (allDone) break;
 
-        for (int i = 0; i < subs.size(); i++) {
-            BatchSubmissionResult r = subs.get(i);
-            log.info("Final result #{} — status={} stdout={} stderr={} compile_output={}",
-                    i,
-                    r.getStatus().getId(),
-                    r.getStdout(),
-                    r.getStderr(),
-                    r.getCompile_output());
+            Thread.sleep(200);
         }
 
         return subs;
+    }
+
+    // Вспомогательный метод, чтобы достать номер теста из sortedCases в CompilerService
+    private int tcIndex(int batchIndex) {
+        // batchIndex это 0-based, а TestCase.getTestNumber() — ваш реальный номер
+        return /*sortedCases.get(batchIndex).getTestNumber()*/ batchIndex+1;
+    }
+
+    // Вспомогательные билдеры WrongSolution для разных ошибок
+    private WrongSolution buildCE(int testCaseNumber, String compileOutput) {
+        WrongSolution w = new WrongSolution();
+        w.setTestCaseNumber(testCaseNumber);
+        w.setProgramOutput(compileOutput);
+        return w;
+    }
+    private WrongSolution buildWA(int testCaseNumber, String stdout, String stderr, String message) {
+        WrongSolution w = new WrongSolution();
+        w.setTestCaseNumber(testCaseNumber);
+        w.setProgramOutput(stdout != null ? stdout : (stderr != null ? stderr : message));
+        return w;
     }
 }
 

@@ -5,6 +5,7 @@ import com.api.codeflow.dto.judge0.SubmissionRequest;
 import com.api.codeflow.dto.request.SubmitCodeDto;
 import com.api.codeflow.dto.response.SuccessSolution;
 import com.api.codeflow.dto.response.WrongSolution;
+import com.api.codeflow.exception.TimeLimitExceededException;
 import com.api.codeflow.exception.WrongSolutionException;
 import com.api.codeflow.model.Task;
 import com.api.codeflow.model.TestCase;
@@ -43,61 +44,42 @@ public class CompilerService {
                     req.setExpected_output(tc.getExceptedOutput());
                     req.setCpu_time_limit(task.getTimeLimit());
                     req.setMemory_limit(task.getMemoryLimit());
+                    req.setCpu_time_limit(task.getTimeLimit());
+                    req.setWall_time_limit(task.getTimeLimit());
                     return req;
                 })
                 .toList();
 
         // Отправляем все тесты разом и ждём результатов
         List<String> tokens  = judge0Client.submitBatch(submissions);
-        List<BatchSubmissionResult> results = judge0Client.getBatchResults(tokens);
+        List<BatchSubmissionResult> results;
+        try {
+            // здесь может прилететь TimeLimitExceededException
+            results = judge0Client.getBatchResults(tokens);
+        } catch (TimeLimitExceededException e) {
+            // мапим на WrongSolution
+            int tcNum = e.getTestCaseNumber();
+            TestCase tc = sortedCases.stream()
+                    .filter(t -> t.getTestNumber() == tcNum)
+                    .findFirst()
+                    .orElse(sortedCases.get(tcNum-1));
 
-        double maxMemory = 0;
-        int maxTime    = 0;
-
-        // Проходим по результатам в порядке тестов
-        for (int i = 0; i < results.size(); i++) {
-            BatchSubmissionResult res = results.get(i);
-            TestCase tc = sortedCases.get(i);
-            int statusId = res.getStatus().getId();
-
-            if (statusId == 3) {
-                // Accepted — учитываем ресурсные метрики
-                double memMB = res.getMemory() / 1024.0;
-                maxMemory = Math.max(maxMemory, memMB);
-                int    tms   = (int)(Double.parseDouble(res.getTime()) * 1000);
-                maxTime   = Math.max(maxTime, tms);
-            }
-            else if (statusId == 4) {
-                // Wrong Answer — stdout содержит вывод пользователя
-                WrongSolution wrong = new WrongSolution();
-                wrong.setTestCaseNumber(tc.getTestNumber());
-                wrong.setInput(tc.getInput());
-                wrong.setExceptedOutput(tc.getExceptedOutput());
-                wrong.setProgramOutput(res.getStdout());
-                throw new WrongSolutionException(wrong);
-            }
-            else if (statusId == 6) {
-                // Compilation Error
-                WrongSolution wrong = new WrongSolution();
-                wrong.setTestCaseNumber(tc.getTestNumber());
-                wrong.setInput(tc.getInput());
-                wrong.setExceptedOutput(tc.getExceptedOutput());
-                wrong.setProgramOutput(res.getCompile_output());
-                throw new WrongSolutionException(wrong);
-            }
-            else {
-                // Другие статусы (TLE, RTE и т.п.) — берём stderr или message
-                WrongSolution wrong = new WrongSolution();
-                wrong.setTestCaseNumber(tc.getTestNumber());
-                wrong.setInput(tc.getInput());
-                wrong.setExceptedOutput(tc.getExceptedOutput());
-                String output = res.getStderr() != null
-                        ? res.getStderr()
-                        : res.getMessage();
-                wrong.setProgramOutput(output);
-                throw new WrongSolutionException(wrong);
-            }
+            WrongSolution wrong = new WrongSolution();
+            wrong.setTestCaseNumber(tcNum);
+            wrong.setInput(tc.getInput());
+            wrong.setExceptedOutput(tc.getExceptedOutput());
+            wrong.setProgramOutput("Time Limit Exceeded");
+            throw new WrongSolutionException(wrong);
         }
+
+        // все здесь гарантированно Accepted, собираем метрики:
+        double maxMemory = results.stream()
+                .mapToDouble(r -> r.getMemory()/1024.0)
+                .max().orElse(0);
+        int maxTime = results.stream()
+                .mapToInt(r -> (int)(Double.parseDouble(r.getTime())*1000))
+                .max().orElse(0);
+
 
         // Все тесты прошли
         SuccessSolution ok = new SuccessSolution();
