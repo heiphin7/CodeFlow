@@ -35,4 +35,8 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "task_id")
     )
     private Set<Task> solvedTasks = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<Submission> submissions = new HashSet<>();
+
 }

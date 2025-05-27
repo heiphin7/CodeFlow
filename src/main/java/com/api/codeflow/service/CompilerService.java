@@ -7,14 +7,18 @@ import com.api.codeflow.dto.response.SuccessSolution;
 import com.api.codeflow.dto.response.WrongSolution;
 import com.api.codeflow.exception.TimeLimitExceededException;
 import com.api.codeflow.exception.WrongSolutionException;
+import com.api.codeflow.model.Submission;
 import com.api.codeflow.model.Task;
 import com.api.codeflow.model.TestCase;
+import com.api.codeflow.model.User;
+import com.api.codeflow.repository.SubmissionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -23,18 +27,25 @@ import java.util.List;
 public class CompilerService {
     private final TaskService taskService;
     private final Judge0Client judge0Client;
+    private final SubmissionRepository submissionRepository;
+    private final UserService userService;
 
     public SuccessSolution checkSolution(Long taskId, SubmitCodeDto dto) throws InterruptedException {
         Task task = taskService.findByIdWithTestCases(taskId);
+        User user = userService.findById(dto.getUserId());
 
-        log.info("Number of test cases: {}", task.getTestCases().size());
+        // Формируем Submission
+        Submission submission = new Submission();
+        submission.setTask(task);
+        submission.setUser(user);
+        submission.setCode(dto.getSolution());
+        submission.setLanguage(dto.getLanguage());
+        submission.setCreatedAt(new Date());
 
-        // Сортируем тесты по номеру
         List<TestCase> sortedCases = task.getTestCases().stream()
                 .sorted(Comparator.comparing(TestCase::getTestNumber))
                 .toList();
 
-        // Готовим batch-запрос
         List<SubmissionRequest> submissions = sortedCases.stream()
                 .map(tc -> {
                     SubmissionRequest req = new SubmissionRequest();
@@ -43,31 +54,38 @@ public class CompilerService {
                     req.setStdin(tc.getInput());
                     req.setExpected_output(tc.getExceptedOutput());
                     req.setCpu_time_limit(task.getTimeLimit());
-                    req.setMemory_limit(task.getMemoryLimit());
-                    req.setCpu_time_limit(task.getTimeLimit());
                     req.setWall_time_limit(task.getTimeLimit());
+                    req.setMemory_limit(task.getMemoryLimit());
                     return req;
                 })
                 .toList();
 
-        // Отправляем все тесты разом и ждём результатов
-        List<String> tokens  = judge0Client.submitBatch(submissions);
+        List<String> tokens = judge0Client.submitBatch(submissions);
         List<BatchSubmissionResult> results;
+
         try {
-            // здесь может прилететь TimeLimitExceededException
             results = judge0Client.getBatchResults(tokens);
         } catch (TimeLimitExceededException e) {
-            int tcNum = e.getTestCaseNumber();
             TestCase tc = sortedCases.stream()
-                    .filter(t -> t.getTestNumber() == tcNum)
+                    .filter(t -> t.getTestNumber() == e.getTestCaseNumber())
                     .findFirst()
-                    .orElse(sortedCases.get(tcNum-1));
+                    .orElse(sortedCases.get(e.getTestCaseNumber() - 1));
+
+            // ❗ Запись результата отправки
+            submission.setStatus("Time Limit Exceeded");
+            submission.setMemoryUsage(0.0);
+            submission.setExecutionTime((double) task.getTimeLimit());
+            submissionRepository.save(submission);
+
+            user.getSubmissions().add(submission);
+            userService.updateUser(user);
 
             WrongSolution wrong = new WrongSolution();
-            wrong.setTestCaseNumber(tcNum);
+            wrong.setTestCaseNumber(tc.getTestNumber());
             wrong.setInput(tc.getInput());
             wrong.setExceptedOutput(tc.getExceptedOutput());
             wrong.setProgramOutput("Time Limit Exceeded");
+
             throw new WrongSolutionException(wrong);
         }
 
@@ -77,40 +95,62 @@ public class CompilerService {
             int status = r.getStatus().getId();
 
             if (status != 3) {
+                String output;
+                String readableStatus;
+
+                switch (status) {
+                    case 4:  // Wrong Answer
+                        output = r.getStdout();
+                        readableStatus = "Wrong Answer";
+                        break;
+                    case 5:
+                        output = "Time Limit Exceeded";
+                        readableStatus = "Time Limit Exceeded";
+                        break;
+                    case 6:
+                        output = r.getCompile_output();
+                        readableStatus = "Compilation Error";
+                        break;
+                    default:
+                        output = r.getStderr() != null ? r.getStderr() : r.getMessage();
+                        readableStatus = "Runtime Error";
+                }
+
+                // ❗ Запись неуспешной отправки
+                submission.setStatus(readableStatus);
+                submission.setMemoryUsage(r.getMemory() / 1024.0);
+                submission.setExecutionTime(Double.parseDouble(r.getTime()));
+                submissionRepository.save(submission);
+
+                user.getSubmissions().add(submission);
+                userService.updateUser(user);
+
                 WrongSolution wrong = new WrongSolution();
                 wrong.setTestCaseNumber(tc.getTestNumber());
                 wrong.setInput(tc.getInput());
                 wrong.setExceptedOutput(tc.getExceptedOutput());
-
-                String output;
-                switch (status) {
-                    case 4:  // Wrong Answer
-                        output = r.getStdout();
-                        break;
-                    case 5:  // Time Limit Exceeded
-                        output = "Time Limit Exceeded";
-                        break;
-                    case 6:  // Compilation Error
-                        output = r.getCompile_output();
-                        break;
-                    default: // Runtime Error и прочие
-                        output = r.getStderr() != null ? r.getStderr() : r.getMessage();
-                }
                 wrong.setProgramOutput(output);
+
                 throw new WrongSolutionException(wrong);
             }
         }
 
-        // все здесь гарантированно Accepted, собираем метрики:
+        // Accepted: собираем метрики
         double maxMemory = results.stream()
-                .mapToDouble(r -> r.getMemory()/1024.0)
+                .mapToDouble(r -> r.getMemory() / 1024.0)
                 .max().orElse(0);
         int maxTime = results.stream()
-                .mapToInt(r -> (int)(Double.parseDouble(r.getTime())*1000))
+                .mapToInt(r -> (int)(Double.parseDouble(r.getTime()) * 1000))
                 .max().orElse(0);
 
+        submission.setStatus("Accepted");
+        submission.setMemoryUsage(maxMemory);
+        submission.setExecutionTime(maxTime / 1000.0);
+        submissionRepository.save(submission);
 
-        // Все тесты прошли
+        user.getSubmissions().add(submission);
+        userService.updateUser(user);
+
         SuccessSolution ok = new SuccessSolution();
         ok.setMemoryUsage(maxMemory);
         ok.setTimeUsage(maxTime);
