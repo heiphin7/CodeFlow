@@ -30,6 +30,7 @@ public class Submission {
     private Date createdAt;
 
     @Lob
+    @Basic(fetch = FetchType.EAGER)
     private String code;
 
     // Нужно ли тут привязывать к пользователю??

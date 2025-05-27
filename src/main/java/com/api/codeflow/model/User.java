@@ -28,13 +28,8 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    @ManyToMany
-    @JoinTable(
-            name = "user_solved_tasks",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "task_id")
-    )
-    private Set<Task> solvedTasks = new HashSet<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<TaskSolution> solvedTasks = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Submission> submissions = new HashSet<>();

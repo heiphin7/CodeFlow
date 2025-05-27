@@ -7,15 +7,14 @@ import com.api.codeflow.dto.response.SuccessSolution;
 import com.api.codeflow.dto.response.WrongSolution;
 import com.api.codeflow.exception.TimeLimitExceededException;
 import com.api.codeflow.exception.WrongSolutionException;
-import com.api.codeflow.model.Submission;
-import com.api.codeflow.model.Task;
-import com.api.codeflow.model.TestCase;
-import com.api.codeflow.model.User;
+import com.api.codeflow.model.*;
 import com.api.codeflow.repository.SubmissionRepository;
+import com.api.codeflow.repository.TaskSolutionRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.Date;
@@ -29,7 +28,9 @@ public class CompilerService {
     private final Judge0Client judge0Client;
     private final SubmissionRepository submissionRepository;
     private final UserService userService;
+    private final TaskSolutionRepository taskSolutionRepository;
 
+    @Transactional
     public SuccessSolution checkSolution(Long taskId, SubmitCodeDto dto) throws InterruptedException {
         Task task = taskService.findByIdWithTestCases(taskId);
         User user = userService.findById(dto.getUserId());
@@ -148,8 +149,22 @@ public class CompilerService {
         submission.setExecutionTime(maxTime / 1000.0);
         submissionRepository.save(submission);
 
-        user.getSubmissions().add(submission);
         userService.updateUser(user);
+
+        // Проверяем, решал ли уже эту задачу
+        boolean alreadySolved = taskSolutionRepository.existsByUserAndTask(user, task);
+        if (!alreadySolved) {
+            TaskSolution solution = new TaskSolution();
+            solution.setUser(user);
+            solution.setTask(task);
+            solution.setLanguage(dto.getLanguage());
+            solution.setExecutionTime(maxTime / 1000.0);
+            solution.setMemoryUsage(maxMemory);
+            solution.setSolvedAt(new Date());
+            solution.setCode(dto.getSolution());
+
+            taskSolutionRepository.save(solution);
+        }
 
         SuccessSolution ok = new SuccessSolution();
         ok.setMemoryUsage(maxMemory);
@@ -173,6 +188,23 @@ public class CompilerService {
             case "kotlin"      -> 78;  // Kotlin (1.3.70)
             case "rust"        -> 73;  // Rust (1.40.0)
             default            -> throw new IllegalArgumentException("Unsupported language: " + lang);
+        };
+    }
+    private String getSourceFileName(String language) {
+        return switch (language.toLowerCase()) {
+            case "java"      -> "Main.java";
+            case "csharp", "cs" -> "Main.cs";
+            case "cpp", "c++"   -> "main.cpp";
+            case "c"            -> "main.c";
+            case "python", "python3" -> "main.py";
+            case "javascript"   -> "main.js";
+            case "typescript"   -> "main.ts";
+            case "kotlin"       -> "Main.kt";
+            case "swift"        -> "main.swift";
+            case "go", "golang" -> "main.go";
+            case "rust"         -> "main.rs";
+            case "ruby"         -> "main.rb";
+            default             -> null;
         };
     }
 

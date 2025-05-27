@@ -15,4 +15,5 @@ public class TaskInfoDto {
     private List<String> tags;
     private Double timeLimit;
     private Integer memoryLimit;
+    private Boolean isSolved;
 }

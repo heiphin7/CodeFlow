@@ -3,15 +3,11 @@ package com.api.codeflow.service;
 import com.api.codeflow.dto.CreateNewTaskDto;
 import com.api.codeflow.dto.TaskInfoDto;
 import com.api.codeflow.exception.NotFoundException;
-import com.api.codeflow.model.Difficulty;
-import com.api.codeflow.model.Tag;
-import com.api.codeflow.model.Task;
-import com.api.codeflow.model.TestCase;
-import com.api.codeflow.repository.DifficultyRepository;
-import com.api.codeflow.repository.TagRepository;
-import com.api.codeflow.repository.TaskRepository;
-import com.api.codeflow.repository.TestCaseRepository;
+import com.api.codeflow.jwt.JwtTokenUtils;
+import com.api.codeflow.model.*;
+import com.api.codeflow.repository.*;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.crossstore.ChangeSetPersister;
@@ -19,7 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +29,9 @@ public class TaskService {
     private final DifficultyRepository difficultyRepository;
     private final TagRepository tagRepository;
     private final TestCaseRepository testCaseRepository;
+    private final JwtTokenUtils jwtTokenUtils;
+    private final UserRepository userRepository;
+    private final TaskSolutionRepository taskSolutionRepository;
 
     // TODO: Также если ошибка мы должны вернуть кароче dto чтобы он мог редактировать
     // TODO: А то если типа ошибка то тогда писать с нуля не самая хорошая идея
@@ -84,17 +86,25 @@ public class TaskService {
         taskRepository.save(task);
     }
 
-    public TaskInfoDto findTaskById(Long taskId) throws NotFoundException {
+    public TaskInfoDto findTaskById(Long taskId, HttpServletRequest request) throws NotFoundException {
         Task task = taskRepository.findById(taskId).orElseThrow(
                 () -> new NotFoundException("Task with id=" + taskId + " not founded!")
         );
 
-        List<String> tags = new ArrayList<>();
-        for(Tag tag: task.getTags()) {
-            tags.add(tag.getName());
+        String username = jwtTokenUtils.getUsernameFromRequest(request);
+        User user = userRepository.findByUsername(username).orElse(null);
+
+        List<String> tags = task.getTags().stream()
+                .map(Tag::getName)
+                .toList();
+
+        // Проверяем через репозиторий (надёжно и быстро)
+        boolean isSolved = false;
+        if (user != null) {
+            isSolved = taskSolutionRepository.existsByUserAndTask(user, task);
         }
 
-        // Маппим данные
+        // Маппим в DTO
         TaskInfoDto dto = new TaskInfoDto();
         dto.setId(task.getId());
         dto.setTitle(task.getTitle());
@@ -105,23 +115,31 @@ public class TaskService {
         dto.setTimeLimit(task.getTimeLimit());
         dto.setMemoryLimit(task.getMemoryLimit());
         dto.setDifficulty(task.getDifficulty().getName());
+        dto.setIsSolved(isSolved);
 
         return dto;
     }
 
-    public List<TaskInfoDto> findAllTasks() {
+    public List<TaskInfoDto> findAllTasks(HttpServletRequest request) {
+        String username = jwtTokenUtils.getUsernameFromRequest(request);
+        User user = userRepository.findByUsername(username).orElse(null);
+
         List<Task> tasks = taskRepository.findAll();
-        log.info("Tasks in db: " + tasks);
         List<TaskInfoDto> dtos = new ArrayList<>();
 
-        for (Task task: tasks) {
+        Set<Long> solvedTaskIdSet = new HashSet<>();
+        if (user != null) {
+            List<Long> solvedTaskIds = taskSolutionRepository.findSolvedTaskIdsByUser(user);
+            solvedTaskIdSet = new HashSet<>(solvedTaskIds); // используем Set для быстрого contains()
+        }
+
+        for (Task task : tasks) {
             TaskInfoDto dto = new TaskInfoDto();
 
-            List<String> tags = new ArrayList<>();
-            for(Tag tag: task.getTags()) {
-                tags.add(tag.getName());
-            }
-            // TODO: Make the mapper method or even class for Task -> TaskInfoDto???
+            List<String> tags = task.getTags().stream()
+                    .map(Tag::getName)
+                    .toList();
+
             dto.setId(task.getId());
             dto.setTitle(task.getTitle());
             dto.setDescription(task.getDescription());
@@ -132,11 +150,15 @@ public class TaskService {
             dto.setMemoryLimit(task.getMemoryLimit());
             dto.setDifficulty(task.getDifficulty().getName());
 
+            dto.setIsSolved(solvedTaskIdSet.contains(task.getId()));
+
             dtos.add(dto);
         }
 
         return dtos;
     }
+
+
 
 
     @Transactional(readOnly = true)

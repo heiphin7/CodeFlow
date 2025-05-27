@@ -7,6 +7,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
@@ -88,6 +89,17 @@ public class JwtTokenUtils {
 
     public List<String> getRoles(String token) {
         return getAllClaimsFromToken(token).get("roles", List.class);
+    }
+
+    public String getUsernameFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            return getUsername(token); // вызывает твой метод getUsername(token)
+        }
+
+        return null; // или выбрось ошибку при необходимости
     }
 
     private Claims getAllClaimsFromToken(String token) {

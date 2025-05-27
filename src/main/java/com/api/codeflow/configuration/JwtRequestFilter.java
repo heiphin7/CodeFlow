@@ -42,8 +42,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         log.info("METHOD: {}, PATH: {}", request.getMethod(), request.getRequestURI());
 
-        // TODO: ЗАМЕНИТЬ!
-        if (path.startsWith("/api/")) {
+        if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
         }

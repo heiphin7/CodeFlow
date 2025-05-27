@@ -13,4 +13,5 @@ public class SubmissionRequest {
     private Double cpu_time_limit; // в секундах
     private Integer memory_limit;  // в мегабайтах
     private Double wall_time_limit;
+    private String source_file_name;
 }
