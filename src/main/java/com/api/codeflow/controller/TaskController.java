@@ -2,8 +2,7 @@ package com.api.codeflow.controller;
 
 import com.api.codeflow.dto.request.SubmitCodeDto;
 import com.api.codeflow.dto.response.SuccessSolution;
-import com.api.codeflow.exception.NotFoundException;
-import com.api.codeflow.exception.WrongSolutionException;
+import com.api.codeflow.exception.*;
 import com.api.codeflow.service.CompilerService;
 import com.api.codeflow.service.TaskService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/tasks")
@@ -24,7 +26,6 @@ public class TaskController {
     @GetMapping("/{id}")
     public ResponseEntity<?> findTaskInfoById(@PathVariable Long id, HttpServletRequest request) {
         try {
-            log.info("asdf: " + taskService.findTaskById(id, request));
             return ResponseEntity.ok(taskService.findTaskById(id, request));
         } catch (NotFoundException e) {
             return new ResponseEntity<>("Task not founded!", HttpStatus.BAD_REQUEST);
@@ -49,15 +50,41 @@ public class TaskController {
                                             @RequestBody SubmitCodeDto dto) {
         try {
             SuccessSolution success = compilerService.checkSolution(taskId, dto);
-            log.info("result1: " + success.toString());
-            return ResponseEntity.ok(success);
+            log.info("✅ Success Solution:\n{}", decodeNewlines(success.toString()));
+            return ResponseEntity.ok(createResponse("success", success));
         } catch (WrongSolutionException e) {
-            log.info("result2: " + e.getMessage());
-            return ResponseEntity.ok(e.getPayload());
+            log.info("❌ Wrong Solution:\n{}", decodeNewlines(e.getPayload().toString()));
+            return ResponseEntity.ok(createResponse("wrong", e.getPayload()));
+        } catch (CompilationErrorException e) {
+            log.info("💥 Compilation Error:\n{}", decodeNewlines(e.getPayload().toString()));
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(createResponse("compile_error", e.getPayload()));
+        } catch (OutOfMemoryException e) {
+            log.info("🚫 Out of Memory:\n{}", decodeNewlines(e.getPayload().toString()));
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(createResponse("memory_error", e.getPayload()));
+        } catch (TimeLimitException e) {
+            log.info("⏱️ Time Limit Exceeded:\n{}", decodeNewlines(e.getPayload().toString()));
+            return ResponseEntity.ok(createResponse("time_limit", e.getPayload()));
         } catch (Exception e) {
-            log.info("result3: " + e.getMessage() + " ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error: " + e.getMessage());
+            log.error("🔥 Server Error: {}", e.getMessage(), e);
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createResponse("error", "Internal server error: " + e.getMessage()));
         }
+    }
+
+    private Map<String, Object> createResponse(String status, Object payload) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("status", status);
+        map.put("result", payload);
+        return map;
+    }
+
+    private String decodeNewlines(String s) {
+        return s.replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

@@ -20,8 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class Judge0Client {
-    private static final String SUBMIT_URL = "http://localhost:2358/submissions/batch?base64_encoded=false";
-    private static final String RESULT_URL = "http://localhost:2358/submissions/batch?tokens=";
+    private static final String SUBMIT_URL = "http://85.198.89.97:2358/submissions/batch?base64_encoded=false";
+    private static final String RESULT_URL = "http://85.198.89.97:2358/submissions/batch?tokens=";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -100,6 +100,3 @@ public class Judge0Client {
         return w;
     }
 }
-
-
-// TODO: Сейчас мы ждем пока все не закончатся

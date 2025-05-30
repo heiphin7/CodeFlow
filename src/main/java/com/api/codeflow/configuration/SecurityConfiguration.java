@@ -34,13 +34,16 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers(
                                 "/auth/register",
-                                "/auth/login"
-                        ) // <- отключаем только на auth
+                                "/auth/login",
+                                "/admin/**",
+                                "/tasks/**"
+                        )
                 )
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers(
                                         "/auth/register",
-                                        "/auth/login"
+                                        "/auth/login",
+                                        "/tasks/**"
                                 ).permitAll()
                                 .anyRequest().authenticated()
                 )

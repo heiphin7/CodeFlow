@@ -1,6 +1,8 @@
 package com.api.codeflow.dto;
 
 import com.api.codeflow.model.TestCase;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Lob;
 import jakarta.validation.Valid;
 import lombok.Data;
 import jakarta.validation.constraints.*;

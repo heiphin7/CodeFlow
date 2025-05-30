@@ -1,12 +1,13 @@
 package com.api.codeflow.service;
 
 import com.api.codeflow.dto.judge0.BatchSubmissionResult;
+import com.api.codeflow.dto.judge0.CompilationErrorSolution;
 import com.api.codeflow.dto.judge0.SubmissionRequest;
+import com.api.codeflow.dto.judge0.TimeLimitSolution;
 import com.api.codeflow.dto.request.SubmitCodeDto;
 import com.api.codeflow.dto.response.SuccessSolution;
 import com.api.codeflow.dto.response.WrongSolution;
-import com.api.codeflow.exception.TimeLimitExceededException;
-import com.api.codeflow.exception.WrongSolutionException;
+import com.api.codeflow.exception.*;
 import com.api.codeflow.model.*;
 import com.api.codeflow.repository.SubmissionRepository;
 import com.api.codeflow.repository.TaskSolutionRepository;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -30,7 +32,6 @@ public class CompilerService {
     private final UserService userService;
     private final TaskSolutionRepository taskSolutionRepository;
 
-    @Transactional
     public SuccessSolution checkSolution(Long taskId, SubmitCodeDto dto) throws InterruptedException {
         Task task = taskService.findByIdWithTestCases(taskId);
         User user = userService.findById(dto.getUserId());
@@ -72,22 +73,19 @@ public class CompilerService {
                     .findFirst()
                     .orElse(sortedCases.get(e.getTestCaseNumber() - 1));
 
-            // ❗ Запись результата отправки
             submission.setStatus("Time Limit Exceeded");
-            submission.setMemoryUsage(0.0);
+            submission.setMemoryUsage(Double.valueOf(task.getMemoryLimit()));
             submission.setExecutionTime((double) task.getTimeLimit());
             submissionRepository.save(submission);
-
-            user.getSubmissions().add(submission);
             userService.updateUser(user);
 
-            WrongSolution wrong = new WrongSolution();
-            wrong.setTestCaseNumber(tc.getTestNumber());
-            wrong.setInput(tc.getInput());
-            wrong.setExceptedOutput(tc.getExceptedOutput());
-            wrong.setProgramOutput("Time Limit Exceeded");
+            TimeLimitSolution tle = new TimeLimitSolution();
+            tle.setTestCaseNumber(tc.getTestNumber());
+            tle.setInput(tc.getInput());
+            tle.setExceptedOutput(tc.getExceptedOutput());
+            tle.setProgramOutput("Time Limit Exceeded");
 
-            throw new WrongSolutionException(wrong);
+            throw new TimeLimitException(tle);
         }
 
         for (int i = 0; i < results.size(); i++) {
@@ -100,39 +98,122 @@ public class CompilerService {
                 String readableStatus;
 
                 switch (status) {
-                    case 4:  // Wrong Answer
+                    case 4: { // Wrong Answer
                         output = r.getStdout();
                         readableStatus = "Wrong Answer";
-                        break;
-                    case 5:
-                        output = "Time Limit Exceeded";
-                        readableStatus = "Time Limit Exceeded";
-                        break;
-                    case 6:
-                        output = r.getCompile_output();
-                        readableStatus = "Compilation Error";
-                        break;
-                    default:
+
+                        submission.setStatus(readableStatus);
+                        submission.setErrorType("WA");
+                        submission.setSuccess(false);
+                        submission.setFinal(true);
+                        submission.setTestCaseNumber(tc.getTestNumber());
+                        submission.setResultOutput(output);
+                        submission.setCompileOutput(r.getCompile_output());
+                        submission.setStderr(r.getStderr());
+                        submission.setJudgeRawStatus(r.getStatus().getDescription());
+                        submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
+                        submission.setExecutionTime(parseSafeTime(r.getTime()));
+                        submissionRepository.save(submission);
+                        userService.updateUser(user);
+
+                        WrongSolution wrong = new WrongSolution();
+                        wrong.setTestCaseNumber(tc.getTestNumber());
+                        wrong.setInput(tc.getInput());
+                        wrong.setExceptedOutput(tc.getExceptedOutput());
+                        wrong.setProgramOutput(output);
+                        throw new WrongSolutionException(wrong);
+                    }
+                    case 5: { // Time Limit Exceeded
+                        submission.setStatus("Time Limit Exceeded");
+                        submission.setErrorType("TLE");
+                        submission.setSuccess(false);
+                        submission.setFinal(true);
+                        submission.setTestCaseNumber(tc.getTestNumber());
+                        submission.setJudgeRawStatus(r.getStatus().getDescription());
+                        submission.setMemoryUsage(0.0);
+                        submission.setExecutionTime(task.getTimeLimit());
+                        submission.setResultOutput(null);
+                        submission.setCompileOutput(r.getCompile_output());
+                        submission.setStderr(r.getStderr());
+                        submissionRepository.save(submission);
+                        userService.updateUser(user);
+
+                        TimeLimitSolution tle = new TimeLimitSolution();
+                        tle.setTestCaseNumber(tc.getTestNumber());
+                        tle.setInput(tc.getInput());
+                        tle.setExceptedOutput(tc.getExceptedOutput());
+                        tle.setProgramOutput("Time Limit Exceeded");
+
+                        throw new TimeLimitException(tle);
+                    }
+                    case 6: { // Compilation Error
+                        submission.setStatus("Compilation Error");
+                        submission.setErrorType("CE");
+                        submission.setSuccess(false);
+                        submission.setFinal(true);
+                        submission.setTestCaseNumber(tc.getTestNumber());
+                        submission.setJudgeRawStatus(r.getStatus().getDescription());
+                        submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
+                        submission.setExecutionTime(parseSafeTime(r.getTime()));
+                        submission.setCompileOutput(r.getCompile_output());
+                        submission.setResultOutput(null);
+                        submission.setStderr(r.getStderr());
+                        submissionRepository.save(submission);
+                        userService.updateUser(user);
+
+                        CompilationErrorSolution ce = new CompilationErrorSolution();
+                        ce.setTestCaseNumber(tc.getTestNumber());
+                        ce.setCompileOutput(r.getCompile_output());
+                        throw new CompilationErrorException(ce);
+                    }
+                    default: { // Runtime Error / OOM
                         output = r.getStderr() != null ? r.getStderr() : r.getMessage();
                         readableStatus = "Runtime Error";
+
+                        submission.setStatus(readableStatus);
+                        submission.setErrorType("RE");
+                        submission.setSuccess(false);
+                        submission.setFinal(true);
+                        submission.setTestCaseNumber(tc.getTestNumber());
+                        submission.setJudgeRawStatus(r.getStatus().getDescription());
+                        submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
+                        submission.setExecutionTime(parseSafeTime(r.getTime()));
+                        submission.setResultOutput(r.getStdout());
+                        submission.setCompileOutput(r.getCompile_output());
+                        submission.setStderr(output);
+
+                        if (output != null && (
+                                output.contains("OutOfMemoryError") ||
+                                        output.toLowerCase().contains("memory limit exceeded") ||
+                                        output.toLowerCase().contains("killed") ||
+                                        output.contains("signal: 9")
+                        )) {
+                            submission.setStatus("Out Of Memory");
+                            submission.setErrorType("OOM");
+                            submission.setMemoryUsage(Double.valueOf(task.getMemoryLimit()));
+                            submission.setExecutionTime((double) task.getTimeLimit());
+                            submissionRepository.save(submission);
+                            userService.updateUser(user);
+
+                            WrongSolution oom = new WrongSolution();
+                            oom.setTestCaseNumber(tc.getTestNumber());
+                            oom.setInput(tc.getInput());
+                            oom.setExceptedOutput(tc.getExceptedOutput());
+                            oom.setProgramOutput("OutOfMemoryError");
+                            throw new OutOfMemoryException(oom);
+                        }
+
+                        submissionRepository.save(submission);
+                        userService.updateUser(user);
+
+                        WrongSolution runtime = new WrongSolution();
+                        runtime.setTestCaseNumber(tc.getTestNumber());
+                        runtime.setInput(tc.getInput());
+                        runtime.setExceptedOutput(tc.getExceptedOutput());
+                        runtime.setProgramOutput(output);
+                        throw new WrongSolutionException(runtime);
+                    }
                 }
-
-                // ❗ Запись неуспешной отправки
-                submission.setStatus(readableStatus);
-                submission.setMemoryUsage(r.getMemory() / 1024.0);
-                submission.setExecutionTime(Double.parseDouble(r.getTime()));
-                submissionRepository.save(submission);
-
-                user.getSubmissions().add(submission);
-                userService.updateUser(user);
-
-                WrongSolution wrong = new WrongSolution();
-                wrong.setTestCaseNumber(tc.getTestNumber());
-                wrong.setInput(tc.getInput());
-                wrong.setExceptedOutput(tc.getExceptedOutput());
-                wrong.setProgramOutput(output);
-
-                throw new WrongSolutionException(wrong);
             }
         }
 
@@ -148,6 +229,11 @@ public class CompilerService {
         submission.setMemoryUsage(maxMemory);
         submission.setExecutionTime(maxTime / 1000.0);
         submissionRepository.save(submission);
+        submission.setErrorType("SUCCESS");
+        submission.setSuccess(true);
+        submission.setFinal(true);
+        submission.setJudgeRawStatus("Accepted");
+
 
         userService.updateUser(user);
 
@@ -207,6 +293,15 @@ public class CompilerService {
             default             -> null;
         };
     }
+
+    private double parseSafeTime(String time) {
+        try {
+            return (time != null && !time.isBlank()) ? Double.parseDouble(time) : 0.0;
+        } catch (NumberFormatException e) {
+            return 0.0;
+        }
+    }
+
 
 }
 

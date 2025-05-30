@@ -31,6 +31,21 @@ public class Task {
 
     // TODO: ДОБАВИТЬ ПРОЦЕНТ РЕШИВШИХСЯ
 
+    // Сигнатурные методы для каждого языка програмирования
+
+    @Lob
+    private String pythonSignature;
+    @Lob
+    private String javaSignature;
+    @Lob
+    private String cppSignature;
+    @Lob
+    private String cSignature;
+    @Lob
+    private String csharpSignature;
+    @Lob
+    private String javascriptSignature;
+
     @ManyToMany
     @JoinTable(
             name = "task_tags",

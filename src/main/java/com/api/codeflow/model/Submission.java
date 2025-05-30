@@ -24,12 +24,29 @@ public class Submission {
     private Task task;
 
     private String language;
-    private String status;
+    private String status;             // "Accepted", "Wrong Answer", "Compilation Error", etc.
+    private String errorType;          // TLE, WA, CE, RE, OOM, SUCCESS
+    private Integer testCaseNumber;    // Номер теста, на котором упало (если не SUCCESS)
     private Double executionTime;
     private Double memoryUsage;
+    private boolean isSuccess;
+    private boolean isFinal;
+    private String judgeRawStatus;
+
+    @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
 
     @Lob
     @Basic(fetch = FetchType.EAGER)
     private String code;
+
+    @Lob
+    private String resultOutput;
+
+    @Lob
+    private String compileOutput;
+
+    @Lob
+    private String stderr;
 }
+
