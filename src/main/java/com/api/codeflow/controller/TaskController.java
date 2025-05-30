@@ -48,10 +48,22 @@ public class TaskController {
     @PostMapping("/{taskId}/submit")
     public ResponseEntity<?> submitSolution(@PathVariable Long taskId,
                                             @RequestBody SubmitCodeDto dto) {
+        long start = System.currentTimeMillis();
         try {
+            SuccessSolution success = compilerService.checkSolution(taskId, dto);
+            long end = System.currentTimeMillis(); // завершение
+
+            double durationSeconds = (end - start) / 1000.0;
+            log.info("✅ Success Solution:\n{}", decodeNewlines(success.toString()));
+            log.info("⏳ Total execution time: {} seconds", durationSeconds); // ⏱️ лог времени
+
+            return ResponseEntity.ok(createResponse("success", success));
+
+/* Old version: перед замерами
             SuccessSolution success = compilerService.checkSolution(taskId, dto);
             log.info("✅ Success Solution:\n{}", decodeNewlines(success.toString()));
             return ResponseEntity.ok(createResponse("success", success));
+ */
         } catch (WrongSolutionException e) {
             log.info("❌ Wrong Solution:\n{}", decodeNewlines(e.getPayload().toString()));
             return ResponseEntity.ok(createResponse("wrong", e.getPayload()));

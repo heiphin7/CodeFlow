@@ -17,10 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +29,7 @@ public class CompilerService {
     private final SubmissionRepository submissionRepository;
     private final UserService userService;
     private final TaskSolutionRepository taskSolutionRepository;
+    private final AiService aiService;
 
     public SuccessSolution checkSolution(Long taskId, SubmitCodeDto dto) throws InterruptedException {
         Task task = taskService.findByIdWithTestCases(taskId);
@@ -52,9 +51,9 @@ public class CompilerService {
                 .map(tc -> {
                     SubmissionRequest req = new SubmissionRequest();
                     req.setLanguage_id(mapLanguage(dto.getLanguage()));
-                    req.setSource_code(dto.getSolution());
-                    req.setStdin(tc.getInput());
-                    req.setExpected_output(tc.getExceptedOutput());
+                    req.setSource_code(encodeBase64(dto.getSolution()));
+                    req.setStdin(encodeBase64(tc.getInput()));
+                    req.setExpected_output(encodeBase64(tc.getExceptedOutput()));
                     req.setCpu_time_limit(task.getTimeLimit());
                     req.setWall_time_limit(task.getTimeLimit());
                     req.setMemory_limit(task.getMemoryLimit());
@@ -107,9 +106,9 @@ public class CompilerService {
                         submission.setSuccess(false);
                         submission.setFinal(true);
                         submission.setTestCaseNumber(tc.getTestNumber());
-                        submission.setResultOutput(output);
-                        submission.setCompileOutput(r.getCompile_output());
-                        submission.setStderr(r.getStderr());
+                        submission.setResultOutput(decodeBase64(r.getStdout()));
+                        submission.setCompileOutput(decodeBase64(r.getCompile_output()));
+                        submission.setStderr(decodeBase64(r.getStderr()));
                         submission.setJudgeRawStatus(r.getStatus().getDescription());
                         submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
                         submission.setExecutionTime(parseSafeTime(r.getTime()));
@@ -120,7 +119,7 @@ public class CompilerService {
                         wrong.setTestCaseNumber(tc.getTestNumber());
                         wrong.setInput(tc.getInput());
                         wrong.setExceptedOutput(tc.getExceptedOutput());
-                        wrong.setProgramOutput(output);
+                        wrong.setProgramOutput(decodeBase64(output));
                         throw new WrongSolutionException(wrong);
                     }
                     case 5: { // Time Limit Exceeded
@@ -133,8 +132,8 @@ public class CompilerService {
                         submission.setMemoryUsage(0.0);
                         submission.setExecutionTime(task.getTimeLimit());
                         submission.setResultOutput(null);
-                        submission.setCompileOutput(r.getCompile_output());
-                        submission.setStderr(r.getStderr());
+                        submission.setCompileOutput(decodeBase64(r.getCompile_output()));
+                        submission.setStderr(decodeBase64(r.getStderr()));
                         submissionRepository.save(submission);
                         userService.updateUser(user);
 
@@ -155,16 +154,19 @@ public class CompilerService {
                         submission.setJudgeRawStatus(r.getStatus().getDescription());
                         submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
                         submission.setExecutionTime(parseSafeTime(r.getTime()));
-                        submission.setCompileOutput(r.getCompile_output());
+                        submission.setCompileOutput(decodeBase64(r.getCompile_output()));
                         submission.setResultOutput(null);
-                        submission.setStderr(r.getStderr());
+                        submission.setStderr(decodeBase64(r.getStderr()));
                         submissionRepository.save(submission);
                         userService.updateUser(user);
 
                         CompilationErrorSolution ce = new CompilationErrorSolution();
+                        String decodedCompile = decodeBase64(r.getCompile_output());
+                        log.info("Decoded Compilation Output: " + decodedCompile);
                         ce.setTestCaseNumber(tc.getTestNumber());
-                        ce.setCompileOutput(r.getCompile_output());
+                        ce.setCompileOutput(decodedCompile);
                         throw new CompilationErrorException(ce);
+
                     }
                     default: { // Runtime Error / OOM
                         output = r.getStderr() != null ? r.getStderr() : r.getMessage();
@@ -178,9 +180,9 @@ public class CompilerService {
                         submission.setJudgeRawStatus(r.getStatus().getDescription());
                         submission.setMemoryUsage(r.getMemory() != null ? r.getMemory() / 1024.0 : 0.0);
                         submission.setExecutionTime(parseSafeTime(r.getTime()));
-                        submission.setResultOutput(r.getStdout());
-                        submission.setCompileOutput(r.getCompile_output());
-                        submission.setStderr(output);
+                        submission.setResultOutput(decodeBase64(r.getStdout()));
+                        submission.setCompileOutput(decodeBase64(r.getCompile_output()));
+                        submission.setStderr(decodeBase64(r.getStderr()));
 
                         if (output != null && (
                                 output.contains("OutOfMemoryError") ||
@@ -210,7 +212,7 @@ public class CompilerService {
                         runtime.setTestCaseNumber(tc.getTestNumber());
                         runtime.setInput(tc.getInput());
                         runtime.setExceptedOutput(tc.getExceptedOutput());
-                        runtime.setProgramOutput(output);
+                        runtime.setProgramOutput(decodeBase64(output));
                         throw new WrongSolutionException(runtime);
                     }
                 }
@@ -255,6 +257,7 @@ public class CompilerService {
         SuccessSolution ok = new SuccessSolution();
         ok.setMemoryUsage(maxMemory);
         ok.setTimeUsage(maxTime);
+        ok.setDto(aiService.getAiAnalysis(dto.getSolution(), task.getDescription(), maxMemory, (double) maxTime));
         return ok;
     }
 
@@ -302,6 +305,21 @@ public class CompilerService {
         }
     }
 
+    private String encodeBase64(String str) {
+        return str != null ? Base64.getEncoder().encodeToString(str.getBytes(StandardCharsets.UTF_8)) : null;
+    }
 
+    private String decodeBase64(String value) {
+        if (value == null) return null;
+
+        // Удалим переносы строк, чтобы корректно считать padding
+        String normalized = value.replaceAll("[\\r\\n]", "");
+
+        try {
+            byte[] decoded = Base64.getDecoder().decode(normalized);
+            return new String(decoded, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return value; // если всё-таки невалидная строка — вернём как есть
+        }
+    }
 }
-

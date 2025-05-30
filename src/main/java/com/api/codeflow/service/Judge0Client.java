@@ -13,15 +13,17 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class Judge0Client {
-    private static final String SUBMIT_URL = "http://85.198.89.97:2358/submissions/batch?base64_encoded=false";
-    private static final String RESULT_URL = "http://85.198.89.97:2358/submissions/batch?tokens=";
+    private static final String SUBMIT_URL = "http://85.198.89.97:2358/submissions/batch?base64_encoded=true";
+    private static final String RESULT_URL = "http://85.198.89.97:2358/submissions/batch?base64_encoded=true&tokens=";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;

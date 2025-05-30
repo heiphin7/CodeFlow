@@ -8,10 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +18,7 @@ public class SubmissionController {
 
     private final SubmissionService submissionService;
 
+    // Для главной страницы, точнее для блока Recent Activity
     @GetMapping("/get/lastSubmissions")
     public ResponseEntity<?> getLastSubmissions(HttpServletRequest request) {
         try {
@@ -32,18 +30,16 @@ public class SubmissionController {
         }
     }
 
-    @GetMapping("/findAll")
-    public ResponseEntity<?> getAllSubmissionsForUser(
-            HttpServletRequest request,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        try {
-            Page<SubmissionDto> result = submissionService.findAllSubmissionsForUser(request, page, size);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            log.error("Error while fetching submissions: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body("Server Error");
-        }
+    // Для страница профиля
+    @GetMapping("/findAll/{userId}")
+    public ResponseEntity<?> getAllSubmissions(@PathVariable Long userId) {
+
     }
+
+    // Для страницы решения задачи
+    @GetMapping("/get/taskSubmissions/{taskId}")
+    public ResponseEntity<?> getTaskSubmissions(@PathVariable Long taskId, HttpServletRequest) {
+
+    }
+
 }
