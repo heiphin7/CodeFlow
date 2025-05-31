@@ -1,13 +1,21 @@
 package com.api.codeflow.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+
 @Entity
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Важный момент
+@ToString(exclude = {"submissions", "solvedTasks", "roles"})
 @Table(name = "users")
 public class User {
 
@@ -34,4 +42,15 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Submission> submissions = new HashSet<>();
 
+    @CreationTimestamp
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date joinedDate;
+
+    // User Info:
+    private String location;
+    private String preferredLanguage;
+    private String githubLink;
+    private String primaryLanguage;
+    private Date lastSeen;
+    private Double successRate;
 }

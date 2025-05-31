@@ -37,7 +37,8 @@ public class SecurityConfiguration {
                                 "/auth/login",
                                 "/admin/**",
                                 "/tasks/**",
-                                "/submissions/**"
+                                "/submissions/**",
+                                "/users/**"
                         )
                 )
                 .authorizeHttpRequests(
@@ -45,7 +46,9 @@ public class SecurityConfiguration {
                                         "/auth/register",
                                         "/auth/login",
                                         "/tasks/**",
-                                        "/submissions/**").permitAll()
+                                        "/submissions/**",
+                                        "/users/**"
+                                ).permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)

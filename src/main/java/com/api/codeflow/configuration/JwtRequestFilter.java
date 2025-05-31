@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +48,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             return;
         }
 
+        if (path.equals("/api/users/update")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
         String jwt = null;
         String username = null;
@@ -56,7 +62,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             try {
                 username = jwtTokenUtils.getUsername(jwt);
-            } catch (ExpiredJwtException e) { // todo: log exceptions
+            } catch (ExpiredJwtException e) {
                 username = e.getClaims().getSubject();
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -106,6 +112,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     .stream()
                     .map(SimpleGrantedAuthority::new).collect(Collectors.toList());
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            userRepository.updateLastSeen(username, new Date());
 
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
                     userDetails,
