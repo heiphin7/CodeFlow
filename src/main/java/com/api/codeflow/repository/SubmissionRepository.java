@@ -1,6 +1,7 @@
 package com.api.codeflow.repository;
 
 import com.api.codeflow.model.Submission;
+import com.api.codeflow.model.Task;
 import com.api.codeflow.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Page;
@@ -16,4 +17,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     @Query("SELECT s FROM Submission s JOIN FETCH s.task WHERE s.user = :user ORDER BY s.createdAt DESC")
     List<Submission> findRecentByUser(@Param("user") User user, Pageable pageable);
 
+    List<Submission> findTop10ByUserAndTaskOrderByCreatedAtDesc(User user, Task task);
+    Page<Submission> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 }

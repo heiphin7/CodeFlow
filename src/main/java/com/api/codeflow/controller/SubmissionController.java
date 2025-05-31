@@ -30,16 +30,28 @@ public class SubmissionController {
         }
     }
 
-    // Для страница профиля
-    @GetMapping("/findAll/{userId}")
-    public ResponseEntity<?> getAllSubmissions(@PathVariable Long userId) {
-
+    @GetMapping("/findAll")
+    public ResponseEntity<?> getAllSubmissions(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            return ResponseEntity.ok(submissionService.getAllSubmissions(request, page, size));
+        } catch (Exception e) {
+            log.error("Error while getting submissions for last submissions page: " + e.getMessage());
+            return new ResponseEntity<>("Server Error:(", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Для страницы решения задачи
     @GetMapping("/get/taskSubmissions/{taskId}")
-    public ResponseEntity<?> getTaskSubmissions(@PathVariable Long taskId, HttpServletRequest) {
-
+    public ResponseEntity<?> getTaskSubmissions(@PathVariable Long taskId, HttpServletRequest request) {
+        try {
+            return ResponseEntity.ok(submissionService.getTaskSubmissions(taskId, request));
+        } catch (Exception e) {
+            log.error("Error while getting last submissions for task: " + e.getMessage());
+            return new ResponseEntity<>("Server error:(", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
 }

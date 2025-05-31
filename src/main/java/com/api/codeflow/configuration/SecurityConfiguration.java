@@ -36,15 +36,16 @@ public class SecurityConfiguration {
                                 "/auth/register",
                                 "/auth/login",
                                 "/admin/**",
-                                "/tasks/**"
+                                "/tasks/**",
+                                "/submissions/**"
                         )
                 )
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers(
                                         "/auth/register",
                                         "/auth/login",
-                                        "/tasks/**"
-                                ).permitAll()
+                                        "/tasks/**",
+                                        "/submissions/**").permitAll()
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
