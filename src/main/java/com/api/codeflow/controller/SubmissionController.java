@@ -30,13 +30,13 @@ public class SubmissionController {
         }
     }
 
-    @GetMapping("/findAll")
+    @GetMapping("/findAll/{username}")
     public ResponseEntity<?> getAllSubmissions(
-            HttpServletRequest request,
+            @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         try {
-            return ResponseEntity.ok(submissionService.getAllSubmissions(request, page, size));
+            return ResponseEntity.ok(submissionService.getAllSubmissions(username, page, size));
         } catch (Exception e) {
             log.error("Error while getting submissions for last submissions page: " + e.getMessage());
             return new ResponseEntity<>("Server Error:(", HttpStatus.INTERNAL_SERVER_ERROR);

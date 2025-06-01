@@ -294,6 +294,26 @@ public class UserService {
                 ));
     }
 
+    @Transactional
+    public List<SolvedTaskDto> getSolvedTasks(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not founded!"));
+
+        return user.getSolvedTasks().stream()
+                .map(ts -> {
+                    SolvedTaskDto dto = new SolvedTaskDto();
+                    dto.setId(ts.getTask().getId());
+                    dto.setTaskName(ts.getTask().getTitle());
+                    dto.setTimeUsage(ts.getExecutionTime() != null ? ts.getExecutionTime() * 1000 : null); // в миллисекундах
+                    dto.setMemoryUsage(ts.getMemoryUsage());
+                    dto.setSolvedAt(ts.getSolvedAt());
+                    dto.setCode(ts.getCode());
+                    dto.setLanguage(ts.getLanguage());
+                    return dto;
+                })
+                .sorted(Comparator.comparing(SolvedTaskDto::getSolvedAt).reversed()) // самые свежие сверху
+                .toList();
+    }
 
 
     public User findById(Long userId) {

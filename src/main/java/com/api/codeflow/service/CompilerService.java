@@ -30,6 +30,7 @@ public class CompilerService {
     private final UserService userService;
     private final TaskSolutionRepository taskSolutionRepository;
     private final AiService aiService;
+    private final TaskSolutionService taskSolutionService;
 
     public SuccessSolution checkSolution(Long taskId, SubmitCodeDto dto) throws InterruptedException {
         Task task = taskService.findByIdWithTestCases(taskId);
@@ -239,20 +240,14 @@ public class CompilerService {
 
         userService.updateUser(user);
 
-        // Проверяем, решал ли уже эту задачу
-        boolean alreadySolved = taskSolutionRepository.existsByUserAndTask(user, task);
-        if (!alreadySolved) {
-            TaskSolution solution = new TaskSolution();
-            solution.setUser(user);
-            solution.setTask(task);
-            solution.setLanguage(dto.getLanguage());
-            solution.setExecutionTime(maxTime / 1000.0);
-            solution.setMemoryUsage(maxMemory);
-            solution.setSolvedAt(new Date());
-            solution.setCode(dto.getSolution());
-
-            taskSolutionRepository.save(solution);
-        }
+        taskSolutionService.saveOrUpdateIfBetter(
+                user,
+                task,
+                dto.getLanguage(),
+                maxTime / 1000.0,
+                maxMemory,
+                dto.getSolution()
+        );
 
         SuccessSolution ok = new SuccessSolution();
         ok.setMemoryUsage(maxMemory);

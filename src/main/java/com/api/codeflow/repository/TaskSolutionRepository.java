@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskSolutionRepository extends JpaRepository<TaskSolution, Long> {
     boolean existsByUserAndTask(User user, Task task);
@@ -15,4 +16,5 @@ public interface TaskSolutionRepository extends JpaRepository<TaskSolution, Long
     @Query("SELECT ts.task.id FROM TaskSolution ts WHERE ts.user = :user")
     List<Long> findSolvedTaskIdsByUser(@Param("user") User user);
 
+    Optional<TaskSolution> findByUserAndTask(User user, Task task);
 }

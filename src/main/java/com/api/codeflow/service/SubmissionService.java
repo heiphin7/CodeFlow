@@ -104,8 +104,7 @@ public class SubmissionService {
     }
 
     @Transactional
-    public List<LastSubmissionsDto> getAllSubmissions(HttpServletRequest request, int page, int size) {
-        String username = jwtTokenUtils.getUsernameFromRequest(request);
+    public List<LastSubmissionsDto> getAllSubmissions(String username, int page, int size) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден!"));
 
